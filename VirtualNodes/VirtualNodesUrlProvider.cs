@@ -69,8 +69,8 @@ namespace VirtualNodes
             // DO NOT USE THIS - RECURSES: string url = content.Url;
             // https://our.umbraco.org/forum/developers/extending-umbraco/73533-custom-url-provider-stackoverflowerror
             // https://our.umbraco.org/forum/developers/extending-umbraco/66741-iurlprovider-cannot-evaluate-expression-because-the-current-thread-is-in-a-stack-overflow-state
-            var url = base.GetUrl(umbracoContext, content, mode, culture, current);
-            var urlText = url.Text;
+            UrlInfo url = base.GetUrl(umbracoContext, content, mode, culture, current);
+            var urlText = url == null ? "" : url.Text;
 
             // If we come from an absolute URL, strip the host part and keep it so that we can append
             // it again when returing the URL. 
@@ -78,7 +78,7 @@ namespace VirtualNodes
 
             if (urlText.StartsWith("http"))
             {
-                var uri = new Uri(url.Text);
+                var uri = new Uri(urlText);
 
                 urlText = urlText.Replace(uri.GetLeftPart(UriPartial.Authority), "");
                 hostPart = uri.GetLeftPart(UriPartial.Authority);
