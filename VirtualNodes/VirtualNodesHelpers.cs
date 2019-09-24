@@ -46,6 +46,8 @@ namespace VirtualNodes
         /// <returns>True if it is a virtual node</returns>
         public static bool IsVirtualNode(this IPublishedContent item)
         {
+            if (item == null) return false;
+            
             foreach (string rule in VirtualNodesRuleManager.Instance.Rules)
             {
                 if (MatchContentTypeAlias(item.ContentType.Alias, rule))
