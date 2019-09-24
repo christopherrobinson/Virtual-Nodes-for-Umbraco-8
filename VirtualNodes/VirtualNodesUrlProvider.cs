@@ -107,7 +107,7 @@ namespace VirtualNodes
                 var currentItem = umbracoContext.Content.GetById(int.Parse(pathIds[i]));
 
                 // Omit any virtual node unless it's leaf level (we still need this otherwise it will be pointing to parent's URL)
-                if (currentItem.IsVirtualNode() && i > 0)
+                if (currentItem != null && currentItem.IsVirtualNode() && i > 0)
                 {
                     urlParts[i] = "";
                 }
