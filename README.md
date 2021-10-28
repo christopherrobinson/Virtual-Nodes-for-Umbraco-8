@@ -1,28 +1,35 @@
-# Virtual Nodes for Umbraco 8
+# Virtual Nodes for Umbraco 9
 
-Basically a rewrite of [Umbraco-VirtualNodes](https://github.com/sotirisf/Umbraco-VirtualNodes/) from [Sotiris Filippidis](https://github.com/sotirisf/) to make it compatible with Umbraco 8.1+.
+Basically a rewrite of [Umbraco-VirtualNodes](https://github.com/sotirisf/Umbraco-VirtualNodes/) from [Sotiris Filippidis](https://github.com/sotirisf/) to make it compatible with Umbraco 9.0+.
 
 This plugin lets you define document types that will be excluded from generated URLs., thus making them "invisible".
 
 ## Usage
-After you include this plugin you must have to add a single `appSettings` entry to your `web.config` file, e.g.
+After you include this plugin you must have to add a single node to your `appSettings.json` file, e.g.
 
-```xml
-<add key="VirtualNodes" value="docTypeName"/>
+```json
+"VirtualNodes" {
+	"Rules": "docTypeName"
+}
 ```
 Where docTypeName is the document type alias to be treated as a "virtual" node.
 
 You can define multiple "rules" by separating them with commas, e.g.
 
-```xml
-<add key="VirtualNodes" value="docTypeName,anotherDocType"/>
+```json
+"VirtualNodes" {
+	"Rules": "docTypeName,anotherDocType"
+}
 ```
 
 You can also use wildcards at the start and/or the end of the document type alias, like this:
 
-```xml
-<add key="VirtualNodes" value="dog*,*cat,*mouse*"/>
+```json
+"VirtualNodes" {
+	"Rules": "dog*,*cat,*mouse*"
+}
 ```
+
 This means that all document type aliases ending with "dog", starting with "cat" or containing "mouse" will be treated as virtual nodes. 
 
 ## Advanced: Auto numbering of nodes

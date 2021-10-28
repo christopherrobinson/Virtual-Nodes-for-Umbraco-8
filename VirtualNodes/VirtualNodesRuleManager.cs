@@ -1,6 +1,7 @@
-﻿using System;
+﻿using Microsoft.Extensions.Configuration;
+using System;
 using System.Collections.Generic;
-using System.Configuration;
+using System.IO;
 
 namespace VirtualNodes
 {
@@ -14,7 +15,15 @@ namespace VirtualNodes
         /// <summary>
         /// Lazy singleton instance member
         /// </summary>
-        private static readonly Lazy<VirtualNodesRuleManager> _instance = new Lazy<VirtualNodesRuleManager>(() => new VirtualNodesRuleManager());
+        private static readonly Lazy<VirtualNodesRuleManager> _instance = new Lazy<VirtualNodesRuleManager>(() => {
+            var builder = new ConfigurationBuilder()
+                        .SetBasePath(Directory.GetCurrentDirectory())
+                        .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                        .AddEnvironmentVariables();
+
+            IConfigurationRoot configuration = builder.Build();
+            return new VirtualNodesRuleManager(configuration);
+        });
 
         #endregion
 
@@ -34,17 +43,21 @@ namespace VirtualNodes
         /// </summary>
         public static VirtualNodesRuleManager Instance { get { return _instance.Value; } }
 
+
         /// <summary>
         /// Private constructor for Singleton
         /// </summary>
-        private VirtualNodesRuleManager()
+        private VirtualNodesRuleManager(IConfiguration configuration)
         {
             Rules = new List<string>();
-
             //Get all entries with keys starting with specified prefix
-            var rules = ConfigurationManager.AppSettings.Get("VirtualNodes");
+            // Add Node to appsettings.json 
+            // "VirtualNodes" : {
+            //   "Rules": "folderDoctype1, folderDoctype2, etc"
+            // }
+            var rules = configuration["VirtualNodes:Rules"];
 
-            if (String.IsNullOrEmpty(rules))
+            if (string.IsNullOrEmpty(rules))
             {
                 return;
             }
