@@ -42,6 +42,7 @@ namespace VirtualNodes
             if (item != null)
             {
                 // Update cache
+                cachedVirtualNodeUrls.Add(path, item.Id); 
                 _runtimeCache.InsertCacheItem("CachedVirtualNodes", () => cachedVirtualNodeUrls, null, false, CacheItemPriority.High);
 
                 // That's all folks
