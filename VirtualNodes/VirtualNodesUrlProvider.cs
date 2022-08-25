@@ -1,34 +1,39 @@
-﻿using System;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
-using Umbraco.Core.Configuration;
-using Umbraco.Core.Configuration.UmbracoSettings;
-using Umbraco.Core.Logging;
-using Umbraco.Core.Models.PublishedContent;
-using Umbraco.Core.Services;
-using Umbraco.Web;
-using Umbraco.Web.Routing;
+using Umbraco.Cms.Core.Configuration.Models;
+using Umbraco.Cms.Core.Models.PublishedContent;
+using Umbraco.Cms.Core.Routing;
+using Umbraco.Cms.Core.Web;
+using Umbraco.Extensions;
 
 namespace VirtualNodes
 {
     public class VirtualNodesUrlProvider : DefaultUrlProvider
     {
-        private readonly IRequestHandlerSection _requestSettings;
+        private readonly RequestHandlerSettings _requestSettings;
+        private readonly IUmbracoContextAccessor _umbracoContextAccessor;
+        private readonly IConfiguration _configuration;
 
-        public VirtualNodesUrlProvider(IRequestHandlerSection requestSettings, ILogger logger, IGlobalSettings globalSettings, ISiteDomainHelper siteDomainHelper)
-            : base(requestSettings, logger, globalSettings, siteDomainHelper)
+        public VirtualNodesUrlProvider(IOptions<RequestHandlerSettings> requestSettings, ILogger<DefaultUrlProvider> logger, ISiteDomainMapper siteDomainMapper, IUmbracoContextAccessor umbracoContextAccessor, UriUtility uriUtility, IConfiguration configuration)
+            : base(requestSettings, logger, siteDomainMapper, umbracoContextAccessor, uriUtility)
         {
-            _requestSettings = requestSettings;
+            _requestSettings = requestSettings.Value;
+            _umbracoContextAccessor = umbracoContextAccessor;
+            _configuration = configuration;
         }
 
-        public override IEnumerable<UrlInfo> GetOtherUrls(UmbracoContext umbracoContext, int id, Uri current)
+        public override IEnumerable<UrlInfo> GetOtherUrls(int id, Uri current)
         {
-            return base.GetOtherUrls(umbracoContext, id, current);
+            return base.GetOtherUrls(id, current);
         }
 
-        public override UrlInfo GetUrl(UmbracoContext umbracoContext, IPublishedContent content, UrlMode mode, string culture, Uri current)
+        public override UrlInfo GetUrl(IPublishedContent content, UrlMode mode, string culture, Uri current)
         {
+
             // If this is a virtual node itself, no need to handle it - should return normal URL
             var hasVirtualNodeInPath = false;
 
@@ -42,20 +47,22 @@ namespace VirtualNodes
                 }
             }
 
-            return (hasVirtualNodeInPath ? ConstructUrl(umbracoContext, content, mode, culture, current) : base.GetUrl(umbracoContext, content, mode, culture, current));
+            return (hasVirtualNodeInPath ? ConstructUrl(content, mode, culture, current) : base.GetUrl(content, mode, culture, current));
         }
 
 
-        private UrlInfo ConstructUrl(UmbracoContext umbracoContext, IPublishedContent content, UrlMode mode, string culture, Uri current)
+        private UrlInfo ConstructUrl(IPublishedContent content, UrlMode mode, string culture, Uri current)
         {
             string path = content.Path;
 
             // Keep path items in par with path segments in url
             // If we are hiding the top node from path, then we'll have to skip one path item (the root). 
             // If we are not, then we'll have to skip two path items (root and home)
-            var hideTopNode = ConfigurationManager.AppSettings.Get("Umbraco.Core.HideTopLevelNodeFromPath");
+            // var hideTopNode = ConfigurationManager.AppSettings.Get("Umbraco.Core.HideTopLevelNodeFromPath");
+            // Changed to the correct setting in the appsettings.json
+            var hideTopNode = _configuration["Umbraco:CMS:Global:HideTopLevelNodeFromPath"];
 
-            if (String.IsNullOrEmpty(hideTopNode))
+            if (string.IsNullOrEmpty(hideTopNode))
             {
                 hideTopNode = "false";
             }
@@ -69,7 +76,7 @@ namespace VirtualNodes
             // DO NOT USE THIS - RECURSES: string url = content.Url;
             // https://our.umbraco.org/forum/developers/extending-umbraco/73533-custom-url-provider-stackoverflowerror
             // https://our.umbraco.org/forum/developers/extending-umbraco/66741-iurlprovider-cannot-evaluate-expression-because-the-current-thread-is-in-a-stack-overflow-state
-            UrlInfo url = base.GetUrl(umbracoContext, content, mode, culture, current);
+            UrlInfo url = base.GetUrl(content, mode, culture, current);
             var urlText = url == null ? "" : url.Text;
 
             // If we come from an absolute URL, strip the host part and keep it so that we can append
@@ -111,7 +118,7 @@ namespace VirtualNodes
 
             foreach (var urlPart in urlParts)
             {
-                var currentItem = umbracoContext.Content.GetById(int.Parse(pathIds[i]));
+                var currentItem = _umbracoContextAccessor.GetRequiredUmbracoContext().Content.GetById(int.Parse(pathIds[i]));
 
                 // Omit any virtual node unless it's leaf level (we still need this otherwise it will be pointing to parent's URL)
                 if (currentItem != null && currentItem.IsVirtualNode() && i > 0)
@@ -124,7 +131,7 @@ namespace VirtualNodes
 
             // Reconstruct the url, leaving out all parts that we emptied above. This 
             // will be our final url, without the parts that correspond to excluded nodes.
-            string finalUrl = String.Join("/", urlParts.Reverse().Where(x => x != "").ToArray());
+            string finalUrl = string.Join("/", urlParts.Reverse().Where(x => x != "").ToArray());
 
             // Just in case - check if there are trailing and leading slashes and add them if not
             if (!finalUrl.EndsWith("/") && _requestSettings.AddTrailingSlash)
@@ -137,8 +144,7 @@ namespace VirtualNodes
                 finalUrl = "/" + finalUrl;
             }
 
-            finalUrl = String.Concat(hostPart, finalUrl);
-
+            finalUrl = string.Concat(hostPart, finalUrl);
             // Voila
             return new UrlInfo(finalUrl, true, culture);
         }

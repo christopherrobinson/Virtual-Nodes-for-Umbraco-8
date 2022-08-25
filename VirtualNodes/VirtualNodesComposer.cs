@@ -1,18 +1,15 @@
-﻿using Umbraco.Core;
-using Umbraco.Core.Composing;
-using Umbraco.Web;
+﻿using Umbraco.Cms.Core.Composing;
+using Umbraco.Cms.Core.DependencyInjection;
 
 namespace VirtualNodes
 {
-    public class VirtualNodesComposer : IUserComposer
+    public class VirtualNodesComposer : IComposer
     {
-        public void Compose(Composition composition)
+
+        public void Compose(IUmbracoBuilder builder)
         {
-            composition.Components().Append<VirtualNodesComponent>();
-
-            composition.ContentFinders().Insert<VirtualNodesContentFinder>();
-
-            composition.UrlProviders().Insert<VirtualNodesUrlProvider>();
+            builder.ContentFinders().Insert<VirtualNodesContentFinder>();
+            builder.UrlProviders().Insert<VirtualNodesUrlProvider>();
         }
     }
 }
